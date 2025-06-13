@@ -11,10 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	db        *gorm.DB
-	tokenAuth = jwtauth.New("HS256", []byte("secret-key"), nil)
-)
+var db *gorm.DB
 
 func Init(database *gorm.DB) {
 	db = database
@@ -25,6 +22,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	_ = json.NewDecoder(r.Body).Decode(&user)
 	if user.Username == "" || user.Password == "" {
 		http.Error(w, "Username and password are required", http.StatusBadRequest)
+		return
 	}
 
 	if _, found := repository.GetUserByUsername(user.Username); found {
@@ -34,9 +32,13 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	user.Password, _ = utils.HashPassword(user.Password)
 	if !repository.SaveUser(user) {
 		http.Error(w, "Failed to save user ", http.StatusInternalServerError)
+		return
 	}
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]string{"message": "User registered successfully"})
+	json.NewEncoder(w).Encode(map[string]string{
+		"message":  "User registered successfully",
+		"username": user.Username,
+	})
 
 }
 
@@ -54,11 +56,16 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, err := utils.GenerateJWT(storedUser.Username)
+	token, err := utils.GenerateJWT(storedUser.Username)
 	if err != nil {
 		http.Error(w, "Failed to generate token", http.StatusInternalServerError)
 		return
 	}
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Login successful",
+		"token":   token,
+	})
 }
 
 func ProfileHandler(w http.ResponseWriter, r *http.Request) {

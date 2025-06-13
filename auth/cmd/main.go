@@ -14,7 +14,7 @@ import (
 var tokenAuth *jwtauth.JWTAuth
 
 func main() {
-	tokenAuth = jwtauth.New("HS256", []byte("secret-key"), nil)
+	tokenAuth = jwtauth.New("HS256", []byte("God loves us all equally "), nil)
 
 	db, err := repository.InitDB("internal/data/auth.db")
 	if err != nil {
